@@ -82,9 +82,9 @@ export default {
         icon: "mdi-home",
         renderer: "./pages/TheSettingsPage.vue"
       }, {
-        title: "Logs",
+        title: "Tests",
         icon: "mdi-account",
-        renderer: "./pages/TheLogPage.vue"
+        renderer: "./pages/TheTestsPage.vue"
       }
     ] as NavItem[]
   }),

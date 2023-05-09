@@ -1,12 +1,27 @@
 <template>
-    <v-dialog v-if="showLoadingDialog"
-        persistent
-        activator="parent"
+    <v-dialog transition="dialog-bottom-transition"
+        v-model="dialog.isOpen"
         width="auto">
-        <v-progress-circular indeterminate></v-progress-circular>
+        <v-card>
+            <v-toolbar class="text-h2"
+                :color="dialog.color"
+                :title="dialog.title"></v-toolbar>
+            <v-card-text>
+                <div class="text-h4 pa-2">{{ dialog.message }}</div>
+            </v-card-text>
+            <v-card-actions class="justify-end">
+                <v-btn variant="text"
+                    @click="dialog.isOpen = false">Close</v-btn>
+            </v-card-actions>
+        </v-card>
     </v-dialog>
 
-    <form>
+    <div v-if="showLoadingDialog"
+        class="d-flex justify-center align-center h-100">
+        <v-progress-circular color="primary"
+            indeterminate></v-progress-circular>
+    </div>
+    <form v-else>
 
         <v-text-field type="number"
             v-model="state.counter"
@@ -65,7 +80,7 @@ import { reactive, ref } from 'vue'
 import { useVuelidate } from '@vuelidate/core'
 import { required, minValue, maxValue, helpers } from '@vuelidate/validators'
 import Ajv from "ajv";
-import { exitCode } from 'process';
+import { loadJsonData } from "@/utils/RequestUtils";
 
 // Schema and schema validator
 const ajv = new Ajv();
@@ -86,7 +101,15 @@ export default {
     data() {
         return {
             // If the loading-dialog is open
-            showLoadingDialog: true
+            showLoadingDialog: true,
+
+
+            dialog: {
+                isOpen: false as boolean,
+                message: "" as string,
+                color: "" as string,
+                title: "" as string
+            }
         }
     },
     mounted() {
@@ -94,40 +117,32 @@ export default {
         this.loadData();
     },
     methods: {
+        // Displays a given message to the user
+        showMessage(title: string, msg: string, isError: boolean) {
+            this.dialog.isOpen = true;
+            this.dialog.message = msg;
+            this.dialog.color = isError ? "error" : "primary"
+            this.dialog.title = title;
+        },
+
         // Function to load data from the backend
         async loadData() {
+            // Ensures the loading dialog
             this.showLoadingDialog = true;
 
-            try {
-                // Loads the data
-                var raw = await fetch("http://localhost:5000/api/get_config");
-                var asJson = await raw.json();
+            // Waits until data has been retreived
+            var res = await loadJsonData<any>("http://localhost:5000/api/get_config", SCHEMA);
 
-                // Validates retreived data
-                const isDataValid = ajv.validate(SCHEMA, asJson);
+            // Closes the loading dialog
+            this.showLoadingDialog = false;
 
-                if (!isDataValid) {
-                    alert("Retreived data is invalid, retrying...");
-                    this.loadData();
-                    return;
-                }
-
-                // Closes the loading dialog
-                this.showLoadingDialog = false;
-
-                // Updates the state
-                for (var key in asJson)
-                    (this.state as any)[key] = asJson[key];
-
-            } catch (e) {
-                alert("Error retreiving data... retrying...");
-                this.loadData()
-            }
+            // Updates the state
+            for (var key in res)
+                (this.state as any)[key] = res[key];
         },
 
         // Event: Refresh button clicked
         onRefreshClicked() {
-            console.log("[Refresh]");
             this.clearData();
 
             this.loadData();
@@ -135,13 +150,11 @@ export default {
 
         // Event: Clear button clicked
         onClearClicked() {
-            console.log("[Clear]");
             this.clearData();
         },
 
         // Event: Submit button clicked
         async onSubmitClicked() {
-            console.log("[Submit]");
             if (!await this.v$.$validate())
                 return;
 
@@ -161,7 +174,7 @@ export default {
                 if (!res.ok)
                     throw new Error("Retreived invalid status code: " + res.status + "/" + res.statusText);
             } catch (e) {
-                console.log(e);
+                this.showMessage("Error", "Failed to save, please retry manually", true)
             }
 
         },
