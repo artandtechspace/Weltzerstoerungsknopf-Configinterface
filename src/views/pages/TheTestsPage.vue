@@ -43,6 +43,7 @@
 <script lang="ts">
 import Ajv from "ajv";
 import { loadJsonData } from "@/utils/RequestUtils";
+import { Endpoints } from "@/Config"
 
 // Schema and schema validator
 const ajv = new Ajv();
@@ -79,7 +80,7 @@ export default {
       this.availableTests = undefined;
 
       // Waits until data has been retreived
-      var res = await loadJsonData<any>("http://localhost:5000/api/get_tests", SCHEMA);
+      var res = await loadJsonData<any>(Endpoints.tests.get, SCHEMA);
 
       // Loads the new tests
       this.availableTests = res;
@@ -95,7 +96,7 @@ export default {
     async onTestClicked(test: string) {
 
       try {
-        var res = await fetch("http://localhost:5000/api/start_test", {
+        var res = await fetch(Endpoints.tests.start, {
           method: "POST",
           mode: "cors",
           body: test

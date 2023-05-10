@@ -81,6 +81,7 @@ import { useVuelidate } from '@vuelidate/core'
 import { required, minValue, maxValue, helpers } from '@vuelidate/validators'
 import Ajv from "ajv";
 import { loadJsonData } from "@/utils/RequestUtils";
+import { Endpoints } from "@/Config"
 
 // Schema and schema validator
 const ajv = new Ajv();
@@ -131,7 +132,7 @@ export default {
             this.showLoadingDialog = true;
 
             // Waits until data has been retreived
-            var res = await loadJsonData<any>("http://localhost:5000/api/get_config", SCHEMA);
+            var res = await loadJsonData<any>(Endpoints.config.get, SCHEMA);
 
             // Closes the loading dialog
             this.showLoadingDialog = false;
@@ -159,7 +160,7 @@ export default {
                 return;
 
             try {
-                var res = await fetch("http://localhost:5000/api/update_config", {
+                var res = await fetch(Endpoints.config.update, {
                     method: "POST",
                     mode: "cors",
                     headers: {
