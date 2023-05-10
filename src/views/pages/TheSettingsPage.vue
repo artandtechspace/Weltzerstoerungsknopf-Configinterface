@@ -1,45 +1,48 @@
 <template>
-    <v-dialog transition="dialog-bottom-transition"
-        v-model="dialog.isOpen"
-        width="auto">
-        <v-card>
-            <v-toolbar class="text-h2"
-                :color="dialog.color"
-                :title="dialog.title"></v-toolbar>
-            <v-card-text>
-                <div class="text-h4 pa-2">{{ dialog.message }}</div>
-            </v-card-text>
-            <v-card-actions class="justify-end">
-                <v-btn variant="text"
-                    @click="dialog.isOpen = false">Close</v-btn>
-            </v-card-actions>
-        </v-card>
-    </v-dialog>
+    <!--Feedback components for messages-->
+    <Dialog ref="dialog"/>
+    <Snackbar ref="snackbar"/>
 
-    <div v-if="showLoadingDialog"
+    <!--Loading state-->
+    <div v-if="status === RequestStatus.LOADING"
         class="d-flex justify-center align-center h-100">
         <v-progress-circular color="primary"
             indeterminate></v-progress-circular>
     </div>
+
+    <!--Error state-->
+    <div v-else-if="status === RequestStatus.ERROR"
+        class="d-flex justify-center flex-column align-center h-100">
+        <div class="text-h4 pa-2">Error retreiving data</div>
+        {{ errorMessage }}
+
+        <v-btn prepend-icon="mdi-refresh"
+            class="mt-12"
+            @click="loadData">
+            Refresh
+        </v-btn>
+    </div>
+
+    <!--Data state-->
     <form v-else>
 
         <v-text-field type="number"
             v-model="state.counter"
-            :error-messages="v$.counter.$errors.map(e => e.$message)"
+            :errorMessages="(v$.counter.$errors.map(e => e.$message) as string[])"
             label="Counter"
+            :min=0
             @input="v$.counter.$touch"
-            @blur="v$.counter.$touch"
-            :min=0>
+            @blur="v$.counter.$touch">
         </v-text-field>
 
         <v-text-field v-model="state.event"
-            :error-messages="v$.event.$errors.map(e => e.$message)"
+            :errorMessages="(v$.event.$errors.map(e => e.$message) as string[])"
             label="Event-Name"
             @input="v$.event.$touch"
             @blur="v$.event.$touch"></v-text-field>
         <v-textarea label="General Text"
             v-model="state.text"
-            :error-messages="v$.text.$errors.map(e => e.$message)"
+            :errorMessages="(v$.text.$errors.map(e => e.$message) as string[])"
             @input="v$.text.$touch"
             @blur="v$.text.$touch"></v-textarea>
 
@@ -79,12 +82,14 @@
 import { reactive, ref } from 'vue'
 import { useVuelidate } from '@vuelidate/core'
 import { required, minValue, maxValue, helpers } from '@vuelidate/validators'
-import Ajv from "ajv";
 import { loadJsonData } from "@/utils/RequestUtils";
+import { RequestStatus } from "@/utils/RequestUtils"
 import { Endpoints } from "@/Config"
+import Dialog from "@/components/Dialog.vue";
+import Snackbar from "@/components/Snackbar.vue"
+import { openDialog, openSnackbar } from '@/utils/FeedbackUtil';
 
-// Schema and schema validator
-const ajv = new Ajv();
+// Scheam for validation
 const SCHEMA = {
     type: "object",
     properties: {
@@ -102,15 +107,8 @@ export default {
     data() {
         return {
             // If the loading-dialog is open
-            showLoadingDialog: true,
-
-
-            dialog: {
-                isOpen: false as boolean,
-                message: "" as string,
-                color: "" as string,
-                title: "" as string
-            }
+            status: RequestStatus.LOADING,
+            errorMessage: undefined as string | undefined
         }
     },
     mounted() {
@@ -118,28 +116,66 @@ export default {
         this.loadData();
     },
     methods: {
-        // Displays a given message to the user
-        showMessage(title: string, msg: string, isError: boolean) {
-            this.dialog.isOpen = true;
-            this.dialog.message = msg;
-            this.dialog.color = isError ? "error" : "primary"
-            this.dialog.title = title;
-        },
-
         // Function to load data from the backend
         async loadData() {
             // Ensures the loading dialog
-            this.showLoadingDialog = true;
+            this.status = RequestStatus.LOADING;
 
-            // Waits until data has been retreived
-            var res = await loadJsonData<any>(Endpoints.config.get, SCHEMA);
+            try {
+                // Waits until data has been retreived
+                var res = await loadJsonData<any>(Endpoints.config.get, SCHEMA);
+            } catch (e) {
+                this.errorMessage = e as string;
+                this.status = RequestStatus.ERROR
+                return;
+            }
 
             // Closes the loading dialog
-            this.showLoadingDialog = false;
+            this.status = RequestStatus.SUCCESS;
 
             // Updates the state
             for (var key in res)
                 (this.state as any)[key] = res[key];
+        },
+
+        // Function to send data back to the backend to save it
+        async sendData(data: object){
+            // Displays the loading screen
+            this.status = RequestStatus.LOADING;
+
+            try {
+                var res = await fetch(Endpoints.config.update, {
+                    method: "POST",
+                    mode: "cors",
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ...data,
+                        counter: parseInt((data as any).counter)
+                    })
+                });
+
+                if (!res.ok)
+                    throw res.statusText;
+                
+                // Notifies the user
+                openSnackbar(this, "Successfully saved", "success", "mdi-account");
+            } catch (e : any) {
+                // Function to callback to retry
+                var cb = ()=>this.sendData(data);
+
+                openDialog(this, e.toString(), "Error saving settings", "error", [
+                    {
+                        text: "Retry",
+                        action: cb,
+                    },
+                    {text: "Close"}
+                ])
+            }
+
+            // Returns the state back to normal
+            this.status = RequestStatus.SUCCESS;
         },
 
         // Event: Refresh button clicked
@@ -156,28 +192,12 @@ export default {
 
         // Event: Submit button clicked
         async onSubmitClicked() {
+            // Validates the data
             if (!await this.v$.$validate())
                 return;
-
-            try {
-                var res = await fetch(Endpoints.config.update, {
-                    method: "POST",
-                    mode: "cors",
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        ...this.state,
-                        counter: parseInt((this.state as any).counter)
-                    })
-                });
-
-                if (!res.ok)
-                    throw new Error("Retreived invalid status code: " + res.status + "/" + res.statusText);
-            } catch (e) {
-                this.showMessage("Error", "Failed to save, please retry manually", true)
-            }
-
+            
+            // Sends the data
+            this.sendData(this.state)
         },
     },
     setup() {
@@ -218,7 +238,17 @@ export default {
             }
         }
 
-        return { state, v$, clearData: clear }
+        return {
+            state,
+            v$,
+            clearData: clear,
+
+            // Forwards to ensure usability inside the template
+            RequestStatus
+        }
     },
+    components: {
+        Dialog, Snackbar
+    }
 }
 </script>

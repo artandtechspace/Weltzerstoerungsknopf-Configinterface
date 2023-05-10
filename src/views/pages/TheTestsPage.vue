@@ -1,27 +1,29 @@
 <template>
-  <v-dialog transition="dialog-bottom-transition"
-    v-model="dialog.isOpen"
-    width="auto">
-    <v-card>
-      <v-toolbar class="text-h2"
-        :color="dialog.color"
-        :title="dialog.title"></v-toolbar>
-      <v-card-text>
-        <div class="text-h4 pa-2">{{ dialog.message }}</div>
-      </v-card-text>
-      <v-card-actions class="justify-end">
-        <v-btn variant="text"
-          @click="dialog.isOpen = false">Close</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+  <!--Feedback components for messages-->
+  <Dialog ref="dialog" />
+  <Snackbar ref="snackbar" />
 
-  <div v-if="availableTests === undefined"
+  <!--Loading state-->
+  <div v-if="status === RequestStatus.LOADING"
     class="d-flex justify-center align-center h-100">
     <v-progress-circular color="primary"
       indeterminate></v-progress-circular>
   </div>
 
+  <!--Error state-->
+  <div v-else-if="status === RequestStatus.ERROR"
+    class="d-flex justify-center flex-column align-center h-100">
+    <div class="text-h4 pa-2">Error retreiving data</div>
+    {{ errorMessage }}
+
+    <v-btn prepend-icon="mdi-refresh"
+      class="mt-12"
+      @click="loadData">
+      Refresh
+    </v-btn>
+  </div>
+
+  <!--Data state-->
   <div v-else
     class="d-flex align-center flex-column">
     <v-btn v-for="key in availableTests"
@@ -41,12 +43,14 @@
 </template>
 
 <script lang="ts">
-import Ajv from "ajv";
 import { loadJsonData } from "@/utils/RequestUtils";
 import { Endpoints } from "@/Config"
+import Dialog from "@/components/Dialog.vue";
+import Snackbar from "@/components/Snackbar.vue"
+import { openDialog, openSnackbar } from '@/utils/FeedbackUtil';
+import { RequestStatus } from "@/utils/RequestUtils"
 
-// Schema and schema validator
-const ajv = new Ajv();
+// Data validator
 const SCHEMA = {
   type: "array",
   items: {
@@ -56,35 +60,83 @@ const SCHEMA = {
 
 export default {
   data: () => ({
+    // Tests that got loaded
     availableTests: undefined as string[] | undefined,
 
-    dialog: {
-      isOpen: false as boolean,
-      message: "" as string,
-      color: "" as string,
-      title: "" as string
-    }
+    // If the loading-dialog is open
+    status: RequestStatus.LOADING,
+    errorMessage: undefined as string | undefined,
   }),
   methods: {
-    // Displays a given message to the user
-    showMessage(title: string, msg: string, isError: boolean) {
-      this.dialog.isOpen = true;
-      this.dialog.message = msg;
-      this.dialog.color = isError ? "error" : "primary"
-      this.dialog.title = title;
-    },
 
     // Function to load data from the backend
     async loadData() {
-      // Ensures no old test are loaded
-      this.availableTests = undefined;
 
-      // Waits until data has been retreived
-      var res = await loadJsonData<any>(Endpoints.tests.get, SCHEMA);
+      // Sets loading state
+      this.status = RequestStatus.LOADING;
 
-      // Loads the new tests
-      this.availableTests = res;
+      try {
+        // Waits until data has been retreived
+        var res = await loadJsonData<any>(Endpoints.tests.get, SCHEMA);
 
+        // Loads the new tests
+        this.availableTests = res;
+
+        // Closes the loading dialog
+        this.status = RequestStatus.SUCCESS;
+      } catch (e) {
+        this.errorMessage = e as string;
+        this.status = RequestStatus.ERROR
+      }
+    },
+
+    // Sends a request to start the test
+    async sendTestStart(testname: string){
+      // Sets the loading state
+      this.status = RequestStatus.LOADING;
+
+      try {
+        var res = await fetch(Endpoints.tests.start, {
+          method: "POST",
+          mode: "cors",
+          body: testname
+        });
+
+        // Checks if everything went to plan
+        if (res.ok) {
+          openDialog(this, "Test is starting", "Test is starting", "primary", [{ text: "close" }]);
+          return;
+        }
+
+        // Checks the error
+        switch (res.status) {
+          // Not in idle state
+          case 412:
+            throw "Tests can only be run in idle state";
+          // Test not found
+          case 405:
+            // Refreshes the data with a second delay in case the refresh
+            // failes and open a new dialog (thus closing this one)
+            setTimeout(this.loadData.bind(this), 1000);
+            throw "Test couldn't be found? Refreshing tests...";
+          default:
+            throw res.statusText;
+        }
+      } catch (e: any) {
+        // Retry callback
+        var cb = ()=>this.sendTestStart(testname);
+
+        openDialog(this, e.toString(), "Error", "error", [
+          {
+            text: "Retry",
+            action: cb
+          },
+          {text: "Close"},
+        ]);
+      }
+
+      // Returns back to the normal state
+      this.status = RequestStatus.SUCCESS;
     },
 
     // Event: Refresh button clicked
@@ -93,51 +145,22 @@ export default {
     },
 
     // Event: A test-button is clicked
-    async onTestClicked(test: string) {
-
-      try {
-        var res = await fetch(Endpoints.tests.start, {
-          method: "POST",
-          mode: "cors",
-          body: test
-        });
-
-        // Checks if everything went to plan
-        if (res.ok) {
-          this.showMessage("Success", "Test is starting", false);
-          return;
-        }
-
-        // Checks the error
-        switch (res.status) {
-          // Not in idle state
-          case 412:
-            this.showMessage("Error", "Tests can only be run in idle state", true);
-            return;
-          // Test not found
-          case 405:
-            this.showMessage("Error", "Test couldn't be found? Refreshing tests...", true);
-            this.loadData();
-            return;
-          default:
-            this.showMessage("Error", "An unknown error occurred, please try again.", true);
-            return;
-        }
-
-
-        if (!res.ok)
-          throw new Error("Retreived invalid status code: " + res.status + "/" + res.statusText);
-      } catch (e) {
-        this.showMessage("Error", "Failed to reach server, please retry manually.", true);
-      }
-
+    onTestClicked(test: string) {
+      this.sendTestStart(test);
     }
   },
   mounted() {
     // Starts loading the data
     this.loadData();
   },
+  setup() {
+    return {
+      // Forwards to ensure usability inside the template
+      RequestStatus
+    }
+  },
   components: {
+    Dialog, Snackbar
   }
 }
 </script>
