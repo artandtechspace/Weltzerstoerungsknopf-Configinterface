@@ -1,6 +1,5 @@
 
 import Ajv from "ajv";
-import { log } from "console";
 
 // Data-Validator-Instance
 const ajv = new Ajv();

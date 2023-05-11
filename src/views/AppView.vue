@@ -4,22 +4,36 @@
 
     <v-app-bar>
       <v-toolbar-title>
-        Weltzerstörungsknopf / {{ selected_view.title }}
+        <v-icon @click="onSecretClicked" icon="mdi-earth-remove" class="mr-4 text-error"/>
+        <span>Weltzerstörungsknopf / {{ selected_view.title }}</span>
       </v-toolbar-title>
     </v-app-bar>
 
-    <v-navigation-drawer location="bottom" temporary v-model="drawer">
-      <v-list lines="one" density="comfortable" nav :selected="[selected_view.index]">
+    <v-navigation-drawer location="bottom"
+      temporary
+      v-model="drawer">
+      <v-list lines="one"
+        density="comfortable"
+        nav
+        :selected="[selected_view.index]">
 
-        <v-list-item :title="item.title" :value="idx" rounded="xl" @click="onSelectView(item)"
-          v-for="(item, idx) in navItems" :key="idx" :prepend-icon="item.icon">
+        <v-list-item :title="item.title"
+          :value="idx"
+          rounded="xl"
+          @click="onSelectView(item)"
+          v-for="(item, idx) in navItems"
+          :key="idx"
+          :prepend-icon="item.icon">
         </v-list-item>
       </v-list>
 
     </v-navigation-drawer>
 
     <v-main>
-      <v-btn @click="drawer = !drawer" style="position: absolute; bottom: 10px; right: 10px" icon="mdi-menu" size="large"></v-btn>
+      <v-btn @click="drawer = !drawer"
+        style="position: fixed; bottom: 10px; right: 10px; z-index: 5;"
+        icon="mdi-menu"
+        size="large"></v-btn>
       <component :is="selected_view.component"></component>
     </v-main>
 
@@ -54,6 +68,7 @@ type SelectedNavItem = {
 export default {
   methods: {
 
+    // Event: When a view get's selected
     onSelectView(view: NavItem) {
       this.selected_view = {
         component: markRaw(defineAsyncComponent(() => import( /* @vite-ignore */ view.renderer))),
@@ -63,9 +78,16 @@ export default {
       this.drawer = false;
     },
 
+
+    // Event: When the secret "button" gets clicked
+    onSecretClicked(){
+      alert("BOOOOOOOOOOOOOOOOOOOOOM");
+    }
+
   },
   beforeMount() {
-    this.onSelectView(this.navItems[0]);
+    // TODO
+    this.onSelectView(this.navItems[2]);
   },
   data: () => ({
     // Dynamically-imported view
@@ -85,11 +107,13 @@ export default {
         title: "Tests",
         icon: "mdi-account",
         renderer: "./pages/TheTestsPage.vue"
+      }, {
+        title: "Logging",
+        icon: "mdi-account",
+        renderer: "./pages/TheLoggingPage.vue"
       }
     ] as NavItem[]
   }),
-  components: {
-  }
 }
 </script>
   
