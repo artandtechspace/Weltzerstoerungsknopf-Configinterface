@@ -86,8 +86,7 @@ export default {
 
   },
   beforeMount() {
-    // TODO
-    this.onSelectView(this.navItems[2]);
+    this.onSelectView(this.navItems[0]);
   },
   data: () => ({
     // Dynamically-imported view
@@ -101,15 +100,15 @@ export default {
     navItems: [
       {
         title: "Settings",
-        icon: "mdi-home",
+        icon: "mdi-cog-outline",
         renderer: "./pages/TheSettingsPage.vue"
       }, {
         title: "Tests",
-        icon: "mdi-account",
+        icon: "mdi-test-tube",
         renderer: "./pages/TheTestsPage.vue"
       }, {
         title: "Logging",
-        icon: "mdi-account",
+        icon: "mdi-file-code-outline",
         renderer: "./pages/TheLoggingPage.vue"
       }
     ] as NavItem[]
