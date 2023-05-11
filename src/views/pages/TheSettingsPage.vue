@@ -1,7 +1,7 @@
 <template>
     <!--Feedback components for messages-->
-    <Dialog ref="dialog"/>
-    <Snackbar ref="snackbar"/>
+    <Dialog ref="dialog" />
+    <Snackbar ref="snackbar" />
 
     <!--Loading state-->
     <div v-if="status === RequestStatus.LOADING"
@@ -45,6 +45,11 @@
             :errorMessages="(v$.text.$errors.map(e => e.$message) as string[])"
             @input="v$.text.$touch"
             @blur="v$.text.$touch"></v-textarea>
+
+        <v-checkbox v-model="state.useSmoker"
+            label="Use the smoker (Disable if the smoker is not allowed)"
+            color="primary"
+            hide-details></v-checkbox>
 
 
         <v-container class="d-flex justify-center">
@@ -95,9 +100,10 @@ const SCHEMA = {
     properties: {
         counter: { type: "integer", min: 0 },
         event: { type: "string" },
-        text: { type: "string" }
+        text: { type: "string" },
+        useSmoker: { type: "boolean" }
     },
-    required: ["counter", "event", "text"],
+    required: ["counter", "event", "text", "useSmoker"],
 };
 
 // Small validator utils to ensure that a text contains a given string
@@ -139,7 +145,7 @@ export default {
         },
 
         // Function to send data back to the backend to save it
-        async sendData(data: object){
+        async sendData(data: object) {
             // Displays the loading screen
             this.status = RequestStatus.LOADING;
 
@@ -158,19 +164,19 @@ export default {
 
                 if (!res.ok)
                     throw res.statusText;
-                
+
                 // Notifies the user
                 openSnackbar(this, "Successfully saved", "success", "mdi-account");
-            } catch (e : any) {
+            } catch (e: any) {
                 // Function to callback to retry
-                var cb = ()=>this.sendData(data);
+                var cb = () => this.sendData(data);
 
                 openDialog(this, e.toString(), "Error saving settings", "error", [
                     {
                         text: "Retry",
                         action: cb,
                     },
-                    {text: "Close"}
+                    { text: "Close" }
                 ])
             }
 
@@ -195,7 +201,7 @@ export default {
             // Validates the data
             if (!await this.v$.$validate())
                 return;
-            
+
             // Sends the data
             this.sendData(this.state)
         },
@@ -204,7 +210,8 @@ export default {
         const initialState = {
             counter: undefined,
             event: "",
-            text: ""
+            text: "",
+            useSmoker: false
         }
 
         const state = reactive({
