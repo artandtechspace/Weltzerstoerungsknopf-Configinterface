@@ -26,10 +26,10 @@
   <!--Data state-->
   <div v-else
     class="d-flex align-center flex-column">
-    <v-btn v-for="key in availableTests"
+    <v-btn v-for="key of Object.keys(availableTests as any)"
       class="mt-4"
-      prepend-icon="mdi-bug-play"
-      @click="() => onTestClicked(key)"
+      :prepend-icon="(availableTests as any)[key].icon"
+      @click="() => onTestClicked(key as string)"
       color="primary">
       Test {{ key }}
     </v-btn>
@@ -52,16 +52,35 @@ import { RequestStatus } from "@/utils/RequestUtils"
 
 // Data validator
 const SCHEMA = {
-  type: "array",
-  items: {
-    type: "string"
+  type: "object",
+  patternProperties: {
+    ".*": {
+      type: "object",
+      required: [
+        "icon",
+        "subtext"
+      ],
+      properties: {
+        icon: {
+          type: "string",
+        },
+        subtext: {
+          type: ["string", "null"],
+        }
+      }
+    }
   }
+}
+
+type TestType = {
+  icon: string,
+  subtext: string | null
 }
 
 export default {
   data: () => ({
     // Tests that got loaded
-    availableTests: undefined as string[] | undefined,
+    availableTests: undefined as { [key: string]: TestType } | undefined,
 
     // If the loading-dialog is open
     status: RequestStatus.LOADING,
@@ -104,7 +123,16 @@ export default {
 
         // Checks if everything went to plan
         if (res.ok) {
-          openDialog(this, "Test is starting", "Test is starting", "primary", [{ text: "close" }]);
+          // Gets the subtext
+          var testData = (this.availableTests as any)[testname] as TestType;
+
+          if (testData.subtext === undefined || testData.subtext === null)
+            // Only shows a snackbar if no additional infos are required
+            openSnackbar(this, "Test is starting...", "success", "mdi-bell-outline", 1200);
+          else
+            // Shows a dialog with additional infos if the subtext is given
+            openDialog(this, testData.subtext, "Test is starting", "primary", [{ text: "close" }]);
+
           // Returns back to the normal state
           this.status = RequestStatus.SUCCESS;
           return;
