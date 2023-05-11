@@ -52,7 +52,7 @@ type NavItem = {
   icon: string,
   // Holds the path to the vue-component and is used
   // to async-render the component
-  renderer: string
+  renderer: any
 }
 // Gets created dynamically and holds actual data requird for the
 // selected component to render
@@ -71,7 +71,7 @@ export default {
     // Event: When a view get's selected
     onSelectView(view: NavItem) {
       this.selected_view = {
-        component: markRaw(defineAsyncComponent(() => import( /* @vite-ignore */ view.renderer))),
+        component: view.renderer,
         index: this.navItems.indexOf(view),
         title: view.title
       }
@@ -101,15 +101,15 @@ export default {
       {
         title: "Settings",
         icon: "mdi-cog-outline",
-        renderer: "./pages/TheSettingsPage.vue"
+        renderer: defineAsyncComponent(() => import("./pages/TheSettingsPage.vue"))
       }, {
         title: "Tests",
         icon: "mdi-test-tube",
-        renderer: "./pages/TheTestsPage.vue"
+        renderer: defineAsyncComponent(() => import("./pages/TheTestsPage.vue"))
       }, {
         title: "Logging",
         icon: "mdi-file-code-outline",
-        renderer: "./pages/TheLoggingPage.vue"
+        renderer: defineAsyncComponent(() => import("./pages/TheLoggingPage.vue"))
       }
     ] as NavItem[]
   }),
