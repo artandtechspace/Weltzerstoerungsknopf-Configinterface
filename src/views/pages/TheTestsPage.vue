@@ -91,7 +91,7 @@ export default {
     },
 
     // Sends a request to start the test
-    async sendTestStart(testname: string){
+    async sendTestStart(testname: string) {
       // Sets the loading state
       this.status = RequestStatus.LOADING;
 
@@ -105,6 +105,8 @@ export default {
         // Checks if everything went to plan
         if (res.ok) {
           openDialog(this, "Test is starting", "Test is starting", "primary", [{ text: "close" }]);
+          // Returns back to the normal state
+          this.status = RequestStatus.SUCCESS;
           return;
         }
 
@@ -124,14 +126,14 @@ export default {
         }
       } catch (e: any) {
         // Retry callback
-        var cb = ()=>this.sendTestStart(testname);
+        var cb = () => this.sendTestStart(testname);
 
         openDialog(this, e.toString(), "Error", "error", [
           {
             text: "Retry",
             action: cb
           },
-          {text: "Close"},
+          { text: "Close" },
         ]);
       }
 
