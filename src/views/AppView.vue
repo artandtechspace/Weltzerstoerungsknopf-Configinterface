@@ -81,7 +81,17 @@ export default {
 
     // Event: When the secret "button" gets clicked
     onSecretClicked(){
-      alert("BOOOOOOOOOOOOOOOOOOOOOM");
+      // Ensures that the secret button is only clicked once
+      if(document.body.classList.contains("explosion"))
+        return;
+
+      // Adds the explosion class
+      document.body.classList.add("explosion");
+
+      setTimeout(() => {
+        // Resets the class
+        document.body.classList.remove("explosion");
+      }, 1200);
     }
 
   },
@@ -118,4 +128,4 @@ export default {
   
 <style lang="sass">
   @import '../../node_modules/@fontsource/roboto/index.css'
-</style>  
+</style>

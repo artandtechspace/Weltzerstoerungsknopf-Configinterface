@@ -3,15 +3,50 @@
 
 <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="connect-src *;">
+    <link rel="icon"
+        href="/favicon.ico" />
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy"
+        content="connect-src *;">
     <title>Konfig der Weltzerstörung</title>
+    <style>
+        .explosion {
+            animation-name: Explosion;
+            animation-duration: 0.5s;
+            animation-iteration-count: Infinite;
+        }
+
+        @keyframes Explosion {
+
+            10%,
+            90% {
+                transform: translate3d(80px, 80px, 30px);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(-80px, -30px, -80px);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(20px, 80px, -80px);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(80px, -20px, 40px);
+            }
+        }
+    </style>
 </head>
 
 <body>
     <div id="app"></div>
-    <script type="module" src="/src/setup/main.ts"></script>
+    <script type="module"
+        src="/src/setup/main.ts"></script>
 </body>
 
 </html>
