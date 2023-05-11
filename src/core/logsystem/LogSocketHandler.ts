@@ -2,6 +2,7 @@
 import { io, Socket } from "socket.io-client";
 import { LogMessage, fromRaw } from "./LogMessage";
 import { log } from "console";
+import {Endpoints} from "@/Config"
 
 /**
  * Handler for the logging-websocket
@@ -44,7 +45,7 @@ export class LogSocketHandler {
         this.errorCB = errorCB;
 
         // Starts the connection
-        this.socket = io("http://localhost:5000/logs", {
+        this.socket = io(Endpoints.logs, {
             transports: ["websocket"],
             reconnectionDelay: 1000,
         });
