@@ -1,5 +1,5 @@
 // Url of the remote server
-const BASE_URL = "http://10.100.16.242:5000";
+const BASE_URL = window.location.origin //"http://localhost:5000";
 
 export const Endpoints = {
     config: {
