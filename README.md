@@ -1,5 +1,5 @@
 # Weltzerstörungsknopf
-Was der Weltzerstörungskopf ist und eine genaue Dokumentation des Systems findet man [hier](https://github.com/artandtechspace/Weltzerstoerungsknopf-Documentation).
+Was der Weltzerstörungskopf ist und eine genaue Dokumentation des Systems findet man [hier](https://github.com/artandtechspace/Weltzerstoerungsknopf-Dokumentation).
 
 Das Web-Configinterface ist eine Webseite, welche als über die [Haupt-Software](https://github.com/artandtechspace/Weltzerstoerungsknopf-Software) ausgeliefert wird und zur Konfiguration, dem logging und tests der Hardware genutzt wird. Genaueres dazu in der oben genannten Dokumentation.
 
